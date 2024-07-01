@@ -8,6 +8,7 @@
 #include <cmath>
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "sensor_msgs/msg/range.hpp"
+#include "std_msgs/msg/float32_multi_array.hpp"
 
 class distNode : public rclcpp::Node {
 private:
@@ -15,6 +16,7 @@ private:
     sensor_msgs::msg::LaserScan laser_data;
 
     rclcpp::Publisher<sensor_msgs::msg::Range>::SharedPtr dist_x, dist_y;
+    rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr dist_pub;
 
     double laser_head;
 public:
@@ -28,6 +30,7 @@ public:
 
         dist_x = this->create_publisher<sensor_msgs::msg::Range>("dist_sensor/x", rclcpp::SensorDataQoS());
         dist_y = this->create_publisher<sensor_msgs::msg::Range>("dist_sensor/y", rclcpp::SensorDataQoS());
+        dist_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("sick_sensor/float", rclcpp::SensorDataQoS());
 
         RCLCPP_INFO(this->get_logger(), "dist_node Start!");
         std::thread(&distNode::main, this).detach();
@@ -38,7 +41,7 @@ public:
     };
 
     void main() {
-        rclcpp::Rate main(2);
+        rclcpp::Rate main(20);
 
         while(rclcpp::ok()) {
 
@@ -95,6 +98,12 @@ public:
 
             dist_x->publish(sensor_x);
             dist_y->publish(sensor_y);
+
+            std_msgs::msg::Float32MultiArray temp;
+            temp.data.push_back(sensor_x.range);
+            temp.data.push_back(sensor_y.range);
+
+            dist_pub->publish(temp);
 
             main.sleep();
         }
